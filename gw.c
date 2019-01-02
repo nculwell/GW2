@@ -32,9 +32,9 @@ void MainLoop(Environment* env, GameState* gs) {
   for (;;) {
     while (FrameTimer_NextFrame(&timer)) {
       ScanInput(env);
-      update(gs);
+      Update(gs);
     }
-    draw(env, gs, timer->phase);
+    Draw(env, gs, timer->phase);
   }
 }
 

@@ -8,6 +8,11 @@ typedef struct PxSz {
   int w, h;
 } PxSz;
 
+typedef struct PxRect {
+  PxXY off;
+  PxSz sz;
+}
+
 typedef struct CxRC {
   int r, c;
 } CxRC;
@@ -15,6 +20,11 @@ typedef struct CxRC {
 typedef struct CxSz {
   int w, h;
 } CxSz;
+
+typedef struct CxRect {
+  CxRC off;
+  CxSz sz;
+}
 
 PxXY PxXY_Add(PxXY a, PxXY b) {
   PxXY s = { .x=a.x+b.x, .y=a.x+b.x };
@@ -53,8 +63,21 @@ PxSz PxSz_Scale(PxSz a, float scale) {
   return s;
 }
 
+PxSz PxSz_DivZ(PxSz a, int b) {
+  PxSz s = { .w=a.w/b, .h=a.h/b };
+  return s;
+}
+
 CxSz PxSz_ToCx(PxSz a, PxSz tileSize) {
   CxSz s = { .w=a.w/tileSize.w, .h=a.h/tileSize.h };
   return s;
 }
+
+CxSz CxSz_DivZ(PxSz a, int b) {
+  CxSz s = { .w=a.w/b, .h=a.h/b };
+  return s;
+}
+
+// TODO: Unit tests for casting compatibility between
+// my types and SDL types (SDL_Rect, etc.).
 
