@@ -2,14 +2,15 @@
 
 enum KeyDir { UP, DOWN, LEFT, RIGHT };
 
-static KeyDir _directions[] = { UP, DOWN, LEFT, RIGHT };
-static SDL_Scancode _directionScancodes = {
-  SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
-};
-
 struct Input {
   bool move[4];
-} _input = {0};
+};
+
+static enum KeyDir _directions[] = { UP, DOWN, LEFT, RIGHT };
+static SDL_Scancode _directionScancodes[] = {
+  SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
+};
+static struct Input _input = {0};
 
 void InitJoystick(Environment* env) {
   env->haveJoystick = (SDL_NumJoysticks() > 0);
@@ -21,10 +22,10 @@ void InitJoystick(Environment* env) {
   }
 }
 
-void HandleEvent_Keyboard(SDL_KeyboardEvent event) {
+void HandleEvent_Keyboard(SDL_KeyboardEvent* event) {
   // TODO: Buffering of text input.
-  if (event.type == SDL_KEYDOWN) {
-    switch (event.keysym.sym) {
+  if (event->type == SDL_KEYDOWN) {
+    switch (event->keysym.sym) {
       case SDLK_q:
         exit(0); // TODO: Raise quit event.
       case SDLK_UP:
@@ -53,7 +54,7 @@ void ScanKeyboard() {
 }
 
 void InitInput(Environment* env) {
-  InitJoystick();
+  InitJoystick(env);
 }
 
 void ScanInput(Environment* env) {

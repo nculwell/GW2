@@ -11,7 +11,7 @@ typedef struct PxSz {
 typedef struct PxRect {
   PxXY off;
   PxSz sz;
-}
+} PxRect;
 
 typedef struct CxRC {
   int r, c;
@@ -24,7 +24,7 @@ typedef struct CxSz {
 typedef struct CxRect {
   CxRC off;
   CxSz sz;
-}
+} CxRect;
 
 PxXY PxXY_Add(PxXY a, PxXY b) {
   PxXY s = { .x=a.x+b.x, .y=a.x+b.x };

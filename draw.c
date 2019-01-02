@@ -24,7 +24,8 @@ void DrawUI(Environment* env, GameState* gs) {
     sidebarRect = (struct PxRect){ { .x = shortDimension, .y = 0 },
       { .w = screenSize.w - shortDimension, .h = screenSize.h } };
   }
-  SDL_RenderDrawRect(env->renderer, (SDL_Rect*)&sidebarRect);
+  if (!SDL_RenderDrawRect(env->renderer, (SDL_Rect*)&sidebarRect))
+    die("SDL_RenderDrawRect: %s\n", SDL_Error());
 }
 
 void Draw(Environment* env, GameState* gs, phase_t phase) {
