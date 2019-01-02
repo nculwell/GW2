@@ -15,11 +15,15 @@ const char[] WINDOW_TITLE = "GridWalk";
 #include "game.c"
 #include "draw.c"
 
-void mainLoop(Environment* env, GameState* gs) {
-  MainLoopTimer timer;
-  MainLoopTimer_Init(&timer, LOGICAL_FRAMES_PER_SECOND);
+void Init(Environment* env) {
+  InitSDL(env);
+}
+
+void MainLoop(Environment* env, GameState* gs) {
+  FrameTimer timer;
+  FrameTimer_Init(&timer, LOGICAL_FRAMES_PER_SECOND);
   for (;;) {
-    while (MainLoopTimer_NextFrame(&timer)) {
+    while (FrameTimer_NextFrame(&timer)) {
       update(gs);
     }
     draw(env, gs, timer->phase);
@@ -32,7 +36,7 @@ int main(int argc, char** argv)
   GameState gs = {0};
   Init(&env);
   load(&env, &gs);
-  mainLoop(&env, &gs);
+  MainLoop(&env, &gs);
   return 0;
 }
 

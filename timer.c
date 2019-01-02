@@ -2,14 +2,14 @@
 
 typedef Sint32 phase_t;
 
-typedef struct MainLoopTimer {
+typedef struct FrameTimer {
   Uint64 nextFrameTime;
   phase_t phase;
   Uint32 seconds;
   Uint32 framesAfterSecond;
   Uint32 endOfSecondCorrection;
   Uint32 framesPerSecond;
-} MainLoopTimer;
+} FrameTimer;
 
 const Uint32 TIMER_MILLISECOND_MULTIPLIER = 8;
 const Uint32 TIMER_FRAME_INCREMENT =
@@ -17,7 +17,7 @@ const Uint32 TIMER_FRAME_INCREMENT =
 const Uint64 WRAPAROUND_TIME = TIMER_MILLISECOND_MULTIPLIER * (1ull << 32);
 const Uint64 WRAPAROUND_TEST_DIFF = WRAPAROUND_TIME >> 2;
 
-MainLoopTimer* MainLoopTimer_Init(MainLoopTimer* t, Uint32 framesPerSecond)
+FrameTimer* FrameTimer_Init(FrameTimer* t, Uint32 framesPerSecond)
 {
   t->nextFrameTime = GetTime();
   t->framesPerSecond = framesPerSecond;
@@ -40,7 +40,7 @@ static Uint64 TimeDiff(Uint64 time, Uint64 referencePoint) {
     diff = time + (WRAPAROUND_TIME - referencePoint);
 }
 
-bool MainLoopTimer_NextFrame(MainLoopTimer* t)
+bool FrameTimer_NextFrame(FrameTimer* t)
 {
   Uint64 time = GetTime();
   Sint64 diff = TimeDiff(time, t->nextFrameTime);
