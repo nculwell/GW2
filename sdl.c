@@ -10,19 +10,17 @@ typedef struct Environment {
   bool haveJoystick;
 } Environment;
 
+#define die(FORMAT, ...) _die(__FILE__, __LINE__, (FORMAT), __VA_ARGS__)
+#define dieSDL(FAILED_FUNCTION_NAME) \
+  die("%s: %s", (FAILED_FUNCTION_NAME), SDL_GetError());
+
 __attribute__((noreturn))
-void die(const char* format, ...) {
+void _die(const char* file, int line, const char* format, ...) {
   va_list args;
   va_start(args, format);
   vfprintf(stderr, format, args);
   va_end(args);
-  fprintf(stderr, "\n");
-  exit(1);
-}
-
-__attribute__((noreturn))
-void dieSDL(const char* failedFunctionName) {
-  fprintf(stderr, "%s: %s\n", failedFunctionName, SDL_GetError());
+  fprintf(stderr, " [%s:%d]\n", file, line);
   exit(1);
 }
 
@@ -42,9 +40,10 @@ void InitSDL(Environment* env) {
   env->screen = SDL_GetWindowSurface(env->window);
   if (!env->screen)
     dieSDL("SDL_GetWindowSurface");
-  env->renderer = SDL_GetRenderer(env->window);
+  // Add flag SDL_RENDERER_PRESENTVSYNC to enable vsync.
+  env->renderer = SDL_CreateRenderer(env->window, -1, SDL_RENDERER_ACCELERATED);
   if (!env->renderer)
-    dieSDL("SDL_GetRenderer");
+    dieSDL("SDL_CreateRenderer");
   int imgFlags = IMG_INIT_PNG;
   if (!(IMG_Init(imgFlags) & imgFlags))
     die("IMG_Init: %s", IMG_GetError());

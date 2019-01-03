@@ -28,7 +28,7 @@ void DrawUI(Environment* env, GameState* gs) {
     sidebarRect = (struct PxRect){ { .x = 0, .y = shortDim },
       { .w = env->screenSize.w, .h = env->screenSize.h - shortDim } };
   }
-  if (!SDL_RenderDrawRect(env->renderer, (SDL_Rect*)&sidebarRect))
+  if (0 != SDL_RenderDrawRect(env->renderer, (SDL_Rect*)&sidebarRect))
     dieSDL("SDL_RenderDrawRect");
 }
 
@@ -46,11 +46,11 @@ void Draw(Environment* env, GameState* gs, phase_t phase) {
 
   //PxSz center = PxSz_DivZ(mapDisplaySize, 2);
 
-  if (!SDL_SetRenderDrawColor(env->renderer, 0, 0, 0, 255))
+  if (0 != SDL_SetRenderDrawColor(env->renderer, 0, 0, 0, 255))
     dieSDL("SDL_SetRenderDrawColor");
-  if (!SDL_RenderClear(env->renderer))
+  if (0 != SDL_RenderClear(env->renderer))
     dieSDL("SDL_RenderClear");
-  if (!SDL_SetRenderDrawColor(env->renderer, 255, 255, 255, 255))
+  if (0 != SDL_SetRenderDrawColor(env->renderer, 255, 255, 255, 255))
     dieSDL("SDL_SetRenderDrawColor");
   DrawMap(env, gs, phase, mapDisplayRect, mapDisplayOffset);
   DrawUI(env, gs);
