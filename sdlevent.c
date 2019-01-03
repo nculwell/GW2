@@ -1,6 +1,6 @@
 // vim: nu et ts=2 sts=2 sw=2
 
-void PollEvents() {
+void PollEvents(Environment* env) {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     switch (e.type) {

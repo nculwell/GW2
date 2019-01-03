@@ -34,10 +34,13 @@ void MainLoop(Environment* env, GameState* gs) {
   FrameTimer_Init(&timer, LOGICAL_FRAMES_PER_SECOND);
   for (;;) {
     while (FrameTimer_NextFrame(&timer)) {
+      PollEvents(env);
       ScanInput(env);
       Update(gs);
     }
     Draw(env, gs, timer.phase);
+    printf("LOOP ");
+    SDL_Delay(0);
   }
 }
 
