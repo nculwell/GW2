@@ -1,2 +1,3 @@
 echo ---------------------------------------------------------------------
-gcc --std=c11 -o gw -Dmain=SDL_main -IC:/msys64/mingw64/include/SDL2 -LC:/msys64/mingw64/lib -lmingw32 -lSDL2main -lSDL2 -mwindows gw.c
+PACKAGES="sdl2 SDL2_image"
+gcc --std=c11 -o gw `pkg-config --cflags --libs $PACKAGES` gw.c

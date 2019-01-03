@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "SDL.h"
+#include "SDL_image.h"
 
 const unsigned int LOGICAL_FRAMES_PER_SECOND = 10;
 const unsigned int SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;

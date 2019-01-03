@@ -5,6 +5,8 @@ typedef struct Environment {
   SDL_Surface* screen;
   SDL_Renderer* renderer;
   PxSz screenSize;
+  int shortDimension;
+  bool isOrientationHorizontal;
   bool haveJoystick;
 } Environment;
 
@@ -14,6 +16,7 @@ void die(const char* format, ...) {
   va_start(args, format);
   vfprintf(stderr, format, args);
   va_end(args);
+  fprintf(stderr, "\n");
   exit(1);
 }
 
@@ -25,6 +28,8 @@ void dieSDL(const char* failedFunctionName) {
 
 void ResizeWindow(Environment* env) {
   SDL_GetRendererOutputSize(env->renderer, &env->screenSize.w, &env->screenSize.h);
+  env->isOrientationHorizontal = env->screenSize.w >= env->screenSize.h;
+  env->shortDimension = env->isOrientationHorizontal ? env->screenSize.h : env->screenSize.w;
 }
 
 void InitSDL(Environment* env) {
@@ -40,12 +45,21 @@ void InitSDL(Environment* env) {
   env->renderer = SDL_GetRenderer(env->window);
   if (!env->renderer)
     dieSDL("SDL_GetRenderer");
+  int imgFlags = IMG_INIT_PNG;
+  if (!(IMG_Init(imgFlags) & imgFlags))
+    die("IMG_Init: %s", IMG_GetError());
   ResizeWindow(env);
 }
 
-// Library setup.
-void Init(Environment* env) {
-  InitSDL(env);
+SDL_Texture* loadImageAsTexture(Environment* env, const char* path) {
+  SDL_Surface* surface = IMG_Load(path);
+  if (!surface)
+    die("IMG_Load(%s): %s", path, IMG_GetError());
+  SDL_Texture* texture = SDL_CreateTextureFromSurface(env->renderer, surface);
+  if (!texture)
+    dieSDL("SDL_CreateTextureFromSurface");
+  SDL_FreeSurface(surface);
+  return texture;
 }
 
 Uint64 GetTime() {

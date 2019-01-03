@@ -73,6 +73,21 @@ CxSz PxSz_ToCx(PxSz a, PxSz tileSize) {
   return s;
 }
 
+CxSz CxSz_New(int w, int h) {
+  CxSz s = { .w=w, .h=h };
+  return s;
+}
+
+CxSz CxSz_Add(CxSz a, CxSz b) {
+  CxSz s = { .w=a.w+b.w, .h=a.h+b.h };
+  return s;
+}
+
+CxSz CxSz_Sub(CxSz a, CxSz b) {
+  CxSz s = { .w=a.w-b.w, .h=a.h-b.h };
+  return s;
+}
+
 CxSz CxSz_DivZ(PxSz a, int b) {
   CxSz s = { .w=a.w/b, .h=a.h/b };
   return s;
