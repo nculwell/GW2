@@ -1,7 +1,9 @@
 // vim: nu et ts=8 sts=2 sw=2
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdbool.h>
 
 #include "SDL.h"
@@ -41,6 +43,7 @@ void _die(const char* file, int line, const char* format, ...) {
 #include "draw.c"
 
 void Init(Environment* env) {
+  InitNet(env);
   InitSDL(env);
 }
 
@@ -54,7 +57,6 @@ void MainLoop(Environment* env, GameState* gs) {
       Update(gs);
     }
     Draw(env, gs, timer.phase);
-    printf("LOOP ");
     SDL_Delay(0);
   }
 }

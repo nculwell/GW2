@@ -22,32 +22,34 @@ enum NetState {
 
 enum NetMessageType {
   NET_MSGTYPE_LOGIN_FAILED,
-  NET_MSGTYPE_
+  NET_MSGTYPE_MAP,
 };
 
 __attribute__((packed))
-struct NetMessageLayout {
+struct NetMessageMap {
   uint8_t type;  // NetMessageType
   uint8_t frame; // frame number mod 2^8
   uint16_t timestamp; // time mod 2^16
   uint16_t messageId; // random 16-bit ID
   uint8_t status;
-  uint8_t unused1;
-  union {
-    struct {
-      uint8_t offsetX;
-      uint8_t offsetY;
-      uint8_t tiles[17*17];
-    } map;
-  };
+  uint8_t unused1; // XXX: use this byte if possible
+  uint8_t offsetX;
+  uint8_t offsetY;
+  uint8_t tiles[289]; // 17 * 17
+  uint8_t extra[213]; // XXX: use this for item/char/player info
 };
 
-typedef struct NetMessageLayout NetMessageLayout;
+typedef struct NetMessageMap NetMessageMap;
 
-_Static_assert(sizeof(struct NetMessageLayout) > NET_MESSAGE_MAX_SIZE,
-    "Network message struct is larger than the queue items allocated for it.");
+//_Static_assert(sizeof(struct NetMessageMap) > NET_MESSAGE_MAX_SIZE,
+//    "Network message struct is larger than the queue items allocated for it.");
 
-unsigned char _netMessageQueue[NET_MESSAGE_QUEUE_SIZE][NET_MESSAGE_MAX_SIZE];
+//unsigned char _netMessageQueue[NET_MESSAGE_QUEUE_SIZE][NET_MESSAGE_MAX_SIZE];
+
+struct {
+  int len;
+  NetMessageMap msg;
+} _lastMapUpdate = {0};
 
 static ENetHost* _enetClient;
 static ENetPeer* _enetServer;
@@ -57,7 +59,8 @@ void CloseNet() {
   enet_host_destroy(_enetClient);
 }
 
-void InitNet() {
+void InitNet(Environment* env) {
+  assert(sizeof(NetMessageMap) == NET_MESSAGE_MAX_SIZE);
   if (0 != enet_initialize())
     die("Failed enet_initialize");
   atexit(enet_deinitialize);
@@ -75,7 +78,7 @@ void InitNet() {
 
 void SendNetMessage(ENetPeer* peer, int msgLen, const char* msg, bool reliable) {
   ENetPacket* packet = enet_packet_create(
-      msg, msgLen > 0 ? msgLen : 1 + strlen(msg), reliable ? ENET_PACKET_FLAG_RELIABLE : 0);
+      msg, msgLen > 0 ? (unsigned)msgLen : 1 + strlen(msg), reliable ? ENET_PACKET_FLAG_RELIABLE : 0);
   // Send the packet to the peer over channel id 0.
   // One could also broadcast the packet by
   // enet_host_broadcast(host, 0, packet);
@@ -87,7 +90,7 @@ void SendNetMessageFmt(ENetPeer* peer, bool reliable, const char* fmt, ...) {
 #define MSG_FMT_BUF_SIZE 256
   char msg[MSG_FMT_BUF_SIZE];
   va_list args;
-  va_start(args, format);
+  va_start(args, fmt);
   int msgLen = vsnprintf(msg, MSG_FMT_BUF_SIZE, fmt, args);
   va_end(args);
   SendNetMessage(peer, msgLen, msg, reliable);
@@ -101,21 +104,23 @@ char* CopyPacketMessage(ENetPacket* packet) {
 }
 
 void ReceiveNetMessage(ENetEvent* event) {
-  switch (_netState) {
-    case NET_STATE_LOGGING_IN:
-      if (MsgEq(packet, "WELCOME")) {
-        SendNetMessageFmt(event->peer, true, "LOAD");
-        _netState = NET_STATE_LOADING;
-      }
-      else {
-        die("Unable to log in, server rejected credentials");
-      }
+  ENetPacket* pkt = event->packet;
+  if (pkt->dataLength == 0)
+    return;
+  uint8_t msgType = pkt->data[0];
+  switch (msgType) {
+    case NET_MSGTYPE_LOGIN_FAILED:
+      // FIXME: Don't die, ask user to change login.
+      die("Unable to log in, server rejected credentials");
       break;
-    case NET_STATE_LOADING:
-    case NET_STATE_PLAYING:
+    case NET_MSGTYPE_MAP:
       {
-        char* messageCopy = CopyPacketMessage(packet);
-        //RaiseEvent(EVT_NET_MESSAGE, packet->dataLength, messageCopy);
+        if (pkt->dataLength > sizeof(NetMessageMap))
+          die("Network map message too large.");
+        _lastMapUpdate.len = pkt->dataLength;
+        memcpy(&_lastMapUpdate.msg, pkt->data, pkt->dataLength);
+        //char* messageCopy = CopyPacketMessage(pkt);
+        //RaiseEvent(EVT_NET_MESSAGE, pkt->dataLength, messageCopy);
         // TODO: Parse event.
       }
       break;
