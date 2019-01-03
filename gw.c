@@ -46,7 +46,7 @@ int main(int argc, char** argv)
   Environment env = {0};
   GameState gs = {0};
   Init(&env);
-  load(&env, &gs);
+  Load(&env, &gs);
   MainLoop(&env, &gs);
   return 0;
 }

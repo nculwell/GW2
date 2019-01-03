@@ -22,7 +22,7 @@ void die(const char* format, ...) {
 
 __attribute__((noreturn))
 void dieSDL(const char* failedFunctionName) {
-  fprintf(stderr, "%s: %s\n", SDL_GetError());
+  fprintf(stderr, "%s: %s\n", failedFunctionName, SDL_GetError());
   exit(1);
 }
 
@@ -33,21 +33,27 @@ void ResizeWindow(Environment* env) {
 }
 
 void InitSDL(Environment* env) {
-  if (SDL_Init(SDL_INIT_VIDEO) < 0)
+  printf("HELLO\n");
+  if (0 != SDL_Init(SDL_INIT_VIDEO))
     dieSDL("SDL_Init");
+  printf("HELLO\n");
   env->window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_UNDEFINED,
       SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
   if (!env->window)
     dieSDL("SDL_CreateWindow");
+  printf("HELLO\n");
   env->screen = SDL_GetWindowSurface(env->window);
   if (!env->screen)
     dieSDL("SDL_GetWindowSurface");
+  printf("HELLO\n");
   env->renderer = SDL_GetRenderer(env->window);
   if (!env->renderer)
     dieSDL("SDL_GetRenderer");
+  printf("HELLO\n");
   int imgFlags = IMG_INIT_PNG;
   if (!(IMG_Init(imgFlags) & imgFlags))
     die("IMG_Init: %s", IMG_GetError());
+  printf("HELLO\n");
   ResizeWindow(env);
 }
 

@@ -15,7 +15,7 @@ Map* Map_Load() {
 }
 
 // Game state setup.
-void load(Environment* env, GameState* gs) {
+void Load(Environment* env, GameState* gs) {
   gs->map = Map_Load();
 }
 

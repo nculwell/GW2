@@ -1,3 +1,4 @@
 echo ---------------------------------------------------------------------
 PACKAGES="sdl2 SDL2_image"
-gcc --std=c11 -o gw gw.c $(pkg-config --cflags --libs $PACKAGES)
+OPTS="-g -Wall -Wextra -Werror"
+gcc --std=c11 $OPTS -o bin/gw gw.c $(pkg-config --cflags --libs $PACKAGES)

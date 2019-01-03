@@ -15,7 +15,7 @@ typedef struct FrameTimer {
   (TIMER_MILLISECOND_MULTIPLIER * 1000 / LOGICAL_FRAMES_PER_SECOND)
 #define WRAPAROUND_TIME (TIMER_MILLISECOND_MULTIPLIER * (1ull << 32))
 //const Uint64 WRAPAROUND_TIME = (TIMER_MILLISECOND_MULTIPLIER * (1ull << 32))
-const Uint64 WRAPAROUND_TEST_DIFF = WRAPAROUND_TIME >> 2;
+const Sint64 WRAPAROUND_TEST_DIFF = WRAPAROUND_TIME >> 2;
 
 FrameTimer* FrameTimer_Init(FrameTimer* t, Uint32 framesPerSecond)
 {
@@ -38,6 +38,7 @@ static Uint64 TimeDiff(Uint64 time, Uint64 referencePoint) {
     diff = referencePoint + (WRAPAROUND_TIME - time);
   else if (diff < -WRAPAROUND_TEST_DIFF)
     diff = time + (WRAPAROUND_TIME - referencePoint);
+  return diff;
 }
 
 bool FrameTimer_NextFrame(FrameTimer* t)
