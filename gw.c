@@ -10,6 +10,7 @@
 const unsigned int SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
 const char WINDOW_TITLE[] = "GridWalk";
 
+#define EVENT_QUEUE_SIZE 1024
 #define LOGICAL_FRAMES_PER_SECOND 10
 
 // Used to multiply times in order to increase the precision of tracking the
@@ -30,11 +31,13 @@ void _die(const char* file, int line, const char* format, ...) {
 }
 
 #include "data.c"
+//#include "event.c"
 #include "sdl.c"
 #include "timer.c"
 #include "input.c"
 #include "sdlevent.c"
 #include "game.c"
+#include "net.c"
 #include "draw.c"
 
 void Init(Environment* env) {
