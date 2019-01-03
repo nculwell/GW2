@@ -15,8 +15,14 @@ static struct Input _input = {0};
 void InitJoystick(Environment* env) {
   env->haveJoystick = (SDL_NumJoysticks() > 0);
   if (env->haveJoystick) {
-    SDL_JoystickGUID guid = SDL_JoystickGetDeviceGUID(0);
     // TODO: Customize joystick setup.
+    SDL_JoystickGUID guid = SDL_JoystickGetDeviceGUID(0);
+    printf("Joystick GUID: ");
+    for (unsigned i=0; i < sizeof(guid.data); ++i) {
+      Uint8 b = guid.data[i];
+      printf("%02X", b);
+    }
+    printf("\n");
   }
 }
 
@@ -55,14 +61,17 @@ void InitInput(Environment* env) {
   InitJoystick(env);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 void ScanInput(Environment* env) {
   ScanKeyboard();
   int moveX = 0, moveY = 0;
   if (_input.move[UP]) --moveY;
   if (_input.move[DOWN]) ++moveY;
-  if (_input.move[LEFT]) --moveY;
-  if (_input.move[RIGHT]) ++moveY;
+  if (_input.move[LEFT]) --moveX;
+  if (_input.move[RIGHT]) ++moveX;
   // TODO: Joystick.
   _input = (struct Input){0};
 }
+#pragma GCC diagnostic pop
 
