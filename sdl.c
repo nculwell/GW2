@@ -10,19 +10,8 @@ typedef struct Environment {
   bool haveJoystick;
 } Environment;
 
-#define die(FORMAT, ...) _die(__FILE__, __LINE__, (FORMAT), __VA_ARGS__)
 #define dieSDL(FAILED_FUNCTION_NAME) \
   die("%s: %s", (FAILED_FUNCTION_NAME), SDL_GetError());
-
-__attribute__((noreturn))
-void _die(const char* file, int line, const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  vfprintf(stderr, format, args);
-  va_end(args);
-  fprintf(stderr, " [%s:%d]\n", file, line);
-  exit(1);
-}
 
 void ResizeWindow(Environment* env) {
   SDL_GetRendererOutputSize(env->renderer, &env->screenSize.w, &env->screenSize.h);

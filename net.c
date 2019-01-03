@@ -16,9 +16,22 @@ enum NetState {
   NETSTATE_PLAYING,
 };
 
+typedef struct NetMessageHeader {
+  uint16_t timestamp; // time mod 2^16
+  uint16_t messageId;
+  uint8_t status;
+  uint8_t frame;
+  uint8_t mapW, mapH;
+  uint8_t map[0];
+} NetMessageHeader;
+
 static ENetHost* _enetClient;
 static ENetPeer* _enetServer;
 static enum NetState _netState = NETSTATE_INIT;
+
+void CloseNet() {
+  enet_host_destroy(_enetClient);
+}
 
 void InitNet() {
   if (0 != enet_initialize())
@@ -36,10 +49,6 @@ void InitNet() {
 }
 
 // _enetServer = enet_host_connect(_enetClient, ENET_HOST_BROADCAST, NET_CHANNELS_TO_REQUEST, enet_uint32 data)
-
-void CloseNet() {
-  enet_host_destroy(_enetClient);
-}
 
 void SendNetMessage(ENetPeer* peer, int msgLen, const char* msg, bool reliable) {
   ENetPacket* packet = enet_packet_create(
@@ -61,11 +70,8 @@ void SendNetMessageFmt(ENetPeer* peer, bool reliable, const char* fmt, ...) {
   SendNetMessage(peer, msgLen, msg, reliable);
 }
 
-static bool MsgEq(ENetPacket* packet, const char* compareTo) {
-  return (0 == strncmp(packet->data, compareTo, packet->dataLength));
-}
-
 char* CopyPacketMessage(ENetPacket* packet) {
+  // TODO: Save packet data in a ring buffer instead of using malloc.
   char* messageCopy = Alloc(packet->dataLength);
   memcpy(messageCopy, packet->data, packet->dataLength);
   return messageCopy;
@@ -73,12 +79,6 @@ char* CopyPacketMessage(ENetPacket* packet) {
 
 void ReceiveNetMessage(ENetEvent* event) {
   switch (_netState) {
-    case NETSTATE_CONNECTING:
-      // TODO: Look at the packet.
-      // TODO: See if 'reliable' really works for this.
-      SendNetMessageFmt(event->peer, true, "CONNECT %s", USERNAME);
-      _netState = NETSTATE_LOGGING_IN;
-      break;
     case NETSTATE_LOGGING_IN:
       if (MsgEq(packet, "WELCOME")) {
         SendNetMessageFmt(event->peer, true, "LOAD");
@@ -96,7 +96,7 @@ void ReceiveNetMessage(ENetEvent* event) {
       }
       break;
     default:
-      die("Invalid NetState: %d", _netState);
+      die("Invalid NetState for message: %d", _netState);
   }
   enet_packet_destroy(event.packet);
 }
@@ -109,6 +109,11 @@ void PollNet() {
       case ENET_EVENT_TYPE_CONNECT:
         printf("Connected to server: %X port %u.\n",
             event.peer->address.host, event.peer->address.port);
+        if (_enetServer == event.peer)
+          printf("peer = _enetServer");
+        // TODO: See if 'reliable' really works for this.
+        SendNetMessageFmt(event->peer, true, "CONNECT %s", USERNAME);
+        _netState = NETSTATE_LOGGING_IN;
         // Store any relevant client information here.
         // event.peer->data = "Client information";
         break;

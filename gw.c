@@ -17,6 +17,18 @@ const char WINDOW_TITLE[] = "GridWalk";
 #define TIMER_MILLISECOND_MULTIPLIER 8
 //const Uint32 TIMER_MILLISECOND_MULTIPLIER = 8;
 
+#define die(FORMAT...) _die(__FILE__, __LINE__, FORMAT)
+
+__attribute__((noreturn))
+void _die(const char* file, int line, const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  vfprintf(stderr, format, args);
+  va_end(args);
+  fprintf(stderr, " [%s:%d]\n", file, line);
+  exit(1);
+}
+
 #include "data.c"
 #include "sdl.c"
 #include "timer.c"

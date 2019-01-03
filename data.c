@@ -26,6 +26,13 @@ typedef struct CxRect {
   CxSz sz;
 } CxRect;
 
+void* Alloc(size_t size) {
+  void* ptr = calloc(size, 1);
+  if (!ptr)
+    die("Out of memory");
+  return ptr;
+}
+
 PxXY PxXY_Add(PxXY a, PxXY b) {
   PxXY s = { .x=a.x+b.x, .y=a.x+b.x };
   return s;
