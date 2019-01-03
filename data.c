@@ -73,6 +73,32 @@ CxSz PxSz_ToCx(PxSz a, PxSz tileSize) {
   return s;
 }
 
+CxRC CxRC_New(int r, int c) {
+  CxRC p = { .r=r, .c=c };
+  return p;
+}
+
+CxRC CxRC_Add(CxRC a, CxRC b) {
+  CxRC s = { .r=a.r+b.r, .c=a.c+b.c };
+  return s;
+}
+
+CxRC CxRC_AddSz(CxRC a, CxSz b) {
+  CxRC s = { .r=a.r+b.h, .c=a.c+b.w };
+  return s;
+}
+
+CxRC CxRC_Sub(CxRC a, CxRC b) {
+  CxRC s = { .r=a.r-b.r, .c=a.c-b.c };
+  return s;
+}
+
+CxRC CxRC_SubSz(CxRC a, CxSz b) {
+  CxRC s = { .r=a.r-b.h, .c=a.c-b.w };
+  return s;
+}
+
+
 CxSz CxSz_New(int w, int h) {
   CxSz s = { .w=w, .h=h };
   return s;
@@ -88,7 +114,7 @@ CxSz CxSz_Sub(CxSz a, CxSz b) {
   return s;
 }
 
-CxSz CxSz_DivZ(PxSz a, int b) {
+CxSz CxSz_DivZ(CxSz a, int b) {
   CxSz s = { .w=a.w/b, .h=a.h/b };
   return s;
 }

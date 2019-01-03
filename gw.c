@@ -7,13 +7,14 @@
 #include "SDL.h"
 #include "SDL_image.h"
 
-const unsigned int LOGICAL_FRAMES_PER_SECOND = 10;
 const unsigned int SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
 const char WINDOW_TITLE[] = "GridWalk";
 
+#define LOGICAL_FRAMES_PER_SECOND 10
+
 // Used to multiply times in order to increase the precision of tracking the
 // frame duration.
-#define TIMER_MILLISECOND_MULTIPLIER (8)
+#define TIMER_MILLISECOND_MULTIPLIER 8
 //const Uint32 TIMER_MILLISECOND_MULTIPLIER = 8;
 
 #include "data.c"
@@ -36,7 +37,7 @@ void MainLoop(Environment* env, GameState* gs) {
       ScanInput(env);
       Update(gs);
     }
-    Draw(env, gs, timer->phase);
+    Draw(env, gs, timer.phase);
   }
 }
 

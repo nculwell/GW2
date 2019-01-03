@@ -16,8 +16,6 @@ void InitJoystick(Environment* env) {
   env->haveJoystick = (SDL_NumJoysticks() > 0);
   if (env->haveJoystick) {
     SDL_JoystickGUID guid = SDL_JoystickGetDeviceGUID(0);
-    if (!guid)
-      die("SDL_JoystickGetDeviceGUID: %s\n", SDL_GetError());
     // TODO: Customize joystick setup.
   }
 }

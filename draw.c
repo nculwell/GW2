@@ -1,6 +1,7 @@
 // vim: nu et ts=8 sts=2 sw=2
 
-void DrawTiles(Environment* env, GameState* gs, phase_t phase, PxRect rect, CxSz offset) {
+void DrawTiles(Environment* env, GameState* gs, phase_t phase, PxRect rect,
+    CxRC offset) {
   for (int r=rect.off.y; r < rect.off.y + rect.sz.h; ++r) {
     for (int c=rect.off.x; c < rect.off.x + rect.sz.w; ++c) {
     }
@@ -10,7 +11,8 @@ void DrawTiles(Environment* env, GameState* gs, phase_t phase, PxRect rect, CxSz
 void DrawCharacters(Environment* env, GameState* gs, phase_t phase) {
 }
 
-void DrawMap(Environment* env, GameState* gs, phase_t phase, PxRect rect, CxSz offset) {
+void DrawMap(Environment* env, GameState* gs, phase_t phase, PxRect rect, CxRC offset) {
+  // TODO: Make centering/offset pixel-precise for smooth scrolling.
   DrawTiles(env, gs, phase, rect, offset);
   DrawCharacters(env, gs, phase);
 }
@@ -40,19 +42,18 @@ void Draw(Environment* env, GameState* gs, phase_t phase) {
   CxSz mapDisplaySizeCx = PxSz_ToCx(mapDisplaySizePx, tileSize);
   CxSz mapDisplayCenterCx =
     CxSz_DivZ(CxSz_Sub(mapDisplaySizeCx, CxSz_New(1, 1)), 2);
-  CxSz mapDisplayOffset = CxSz_Sub(playerPositionCx, mapDisplayCenterCx);
+  CxRC mapDisplayOffset = CxRC_SubSz(gs->playerPositionRC, mapDisplayCenterCx);
 
   //PxSz center = PxSz_DivZ(mapDisplaySize, 2);
 
   if (!SDL_SetRenderDrawColor(env->renderer, 0, 0, 0, 255))
     dieSDL("SDL_SetRenderDrawColor");
-  if (!SDL_RenderClear(env->env->renderer))
+  if (!SDL_RenderClear(env->renderer))
     dieSDL("SDL_RenderClear");
   if (!SDL_SetRenderDrawColor(env->renderer, 255, 255, 255, 255))
     dieSDL("SDL_SetRenderDrawColor");
   DrawMap(env, gs, phase, mapDisplayRect, mapDisplayOffset);
   DrawUI(env, gs);
-  if (!SDL_RenderPresent(env->renderer))
-    dieSDL("SDL_RenderPresent");
+  SDL_RenderPresent(env->renderer);
 }
 
