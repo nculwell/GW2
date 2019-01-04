@@ -11,6 +11,10 @@
 #define NET_MESSAGE_QUEUE_SIZE (2 * LOGICAL_FRAMES_PER_SECOND)
 #define NET_MESSAGE_MAX_SIZE 512
 
+#define NET_MESSAGE_MAP_DIMENSION 17
+#define NET_MESSAGE_MAP_DATA_SIZE \
+  (NET_MESSAGE_MAP_DIMENSION * NET_MESSAGE_MAP_DIMENSION)
+
 enum NetState {
   NET_STATE_INIT,
   NET_STATE_BROADCASTING,
@@ -33,10 +37,12 @@ struct NetMessageMap {
   uint16_t messageId; // random 16-bit ID
   uint8_t status;
   uint8_t unused1; // XXX: use this byte if possible
-  uint8_t offsetX;
-  uint8_t offsetY;
-  uint8_t tiles[289]; // 17 * 17
-  uint8_t extra[213]; // XXX: use this for item/char/player info
+  uint16_t mapRegionID;
+  uint16_t mapSectorID;
+  uint8_t offsetX, offsetY;
+  uint8_t playerX, playerY;
+  uint8_t tiles[NET_MESSAGE_MAP_DATA_SIZE];
+  uint8_t extra[207]; // XXX: use this for item/char/player info
 };
 
 typedef struct NetMessageMap NetMessageMap;
@@ -54,6 +60,16 @@ struct {
 static ENetHost* _enetClient;
 static ENetPeer* _enetServer;
 static enum NetState _netState = NET_STATE_INIT;
+
+static void PrintMapMessage(NetMessageMap* msg) {
+  printf("MAP MESSAGE: { type=%u, frame=%u, timestamp=%u, messageId=%04X, status=%u;\n",
+      msg->type, msg->frame, msg->timestamp, msg->messageId, msg->status);
+  for (int r=0; r < NET_MESSAGE_MAP_DIMENSION; ++r) {
+    for (int c=0; c < NET_MESSAGE_MAP_DIMENSION; ++c) {
+      printf("%02X", msg->tiles[r * NET_MESSAGE_MAP_DIMENSION + c]);
+    }
+  }
+}
 
 void CloseNet() {
   enet_host_destroy(_enetClient);
@@ -76,7 +92,7 @@ void InitNet(Environment* env) {
   atexit(CloseNet);
 }
 
-void SendNetMessage(ENetPeer* peer, int msgLen, const char* msg, bool reliable) {
+static void SendNetMessage(ENetPeer* peer, int msgLen, const char* msg, bool reliable) {
   ENetPacket* packet = enet_packet_create(
       msg, msgLen > 0 ? (unsigned)msgLen : 1 + strlen(msg), reliable ? ENET_PACKET_FLAG_RELIABLE : 0);
   // Send the packet to the peer over channel id 0.
@@ -86,7 +102,7 @@ void SendNetMessage(ENetPeer* peer, int msgLen, const char* msg, bool reliable) 
   enet_host_flush(_enetClient);
 }
 
-void SendNetMessageFmt(ENetPeer* peer, bool reliable, const char* fmt, ...) {
+static void SendNetMessageFmt(ENetPeer* peer, bool reliable, const char* fmt, ...) {
 #define MSG_FMT_BUF_SIZE 256
   char msg[MSG_FMT_BUF_SIZE];
   va_list args;
@@ -96,15 +112,37 @@ void SendNetMessageFmt(ENetPeer* peer, bool reliable, const char* fmt, ...) {
   SendNetMessage(peer, msgLen, msg, reliable);
 }
 
-char* CopyPacketMessage(ENetPacket* packet) {
+/*
+static char* CopyPacketMessage(ENetPacket* packet) {
   // TODO: Save packet data in a ring buffer instead of using malloc.
   char* messageCopy = Alloc(packet->dataLength);
   memcpy(messageCopy, packet->data, packet->dataLength);
   return messageCopy;
 }
+*/
 
-void ReceiveNetMessage(ENetEvent* event) {
-  ENetPacket* pkt = event->packet;
+#define FRAME_OVERFLOW_THRESHOLD 0x20
+
+static bool IsPacketFrameLater(unsigned packetFrame, unsigned savedFrame) {
+  return packetFrame > savedFrame
+    || (packetFrame < FRAME_OVERFLOW_THRESHOLD
+        && savedFrame > 0x100 - FRAME_OVERFLOW_THRESHOLD);
+}
+
+static void ReceiveNetMessageMap(ENetPacket* pkt) {
+  NetMessageMap* pktMap = (NetMessageMap*)&pkt->data;
+  if (IsPacketFrameLater(pktMap->frame, _lastMapUpdate.msg.frame)) {
+    _lastMapUpdate.len = pkt->dataLength;
+    _lastMapUpdate.msg = *pktMap;
+    //memcpy(&_lastMapUpdate.msg, pkt->data, pkt->dataLength);
+    PrintMapMessage(&_lastMapUpdate.msg);
+    //char* messageCopy = CopyPacketMessage(pkt);
+    //RaiseEvent(EVT_NET_MESSAGE, pkt->dataLength, messageCopy);
+    // TODO: Parse event.
+  }
+}
+
+static void ReceiveNetMessage(ENetPacket* pkt) {
   if (pkt->dataLength == 0)
     return;
   uint8_t msgType = pkt->data[0];
@@ -114,15 +152,9 @@ void ReceiveNetMessage(ENetEvent* event) {
       die("Unable to log in, server rejected credentials");
       break;
     case NET_MSGTYPE_MAP:
-      {
-        if (pkt->dataLength > sizeof(NetMessageMap))
-          die("Network map message too large.");
-        _lastMapUpdate.len = pkt->dataLength;
-        memcpy(&_lastMapUpdate.msg, pkt->data, pkt->dataLength);
-        //char* messageCopy = CopyPacketMessage(pkt);
-        //RaiseEvent(EVT_NET_MESSAGE, pkt->dataLength, messageCopy);
-        // TODO: Parse event.
-      }
+      if (pkt->dataLength > sizeof(NetMessageMap))
+        die("Network map message too large.");
+      ReceiveNetMessageMap(pkt);
       break;
     default:
       die("Invalid NetState for message: %d", _netState);
@@ -146,7 +178,7 @@ void PollNet() {
         // event.peer->data = "Client information";
         break;
       case ENET_EVENT_TYPE_RECEIVE:
-        ReceiveNetMessage(&event);
+        ReceiveNetMessage(event.packet);
         enet_packet_destroy(event.packet);
         break;
       case ENET_EVENT_TYPE_DISCONNECT:
