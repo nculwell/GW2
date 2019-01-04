@@ -66,7 +66,7 @@ static void PrintMapMessage(NetMessageMap* msg) {
       msg->type, msg->frame, msg->timestamp, msg->messageId, msg->status);
   for (int r=0; r < NET_MESSAGE_MAP_DIMENSION; ++r) {
     for (int c=0; c < NET_MESSAGE_MAP_DIMENSION; ++c) {
-      printf("%02X", msg->tiles[r * NET_MESSAGE_MAP_DIMENSION + c]);
+      printf(" %02X", msg->tiles[r * NET_MESSAGE_MAP_DIMENSION + c]);
     }
   }
 }
@@ -92,9 +92,12 @@ void InitNet(Environment* env) {
   atexit(CloseNet);
 }
 
-static void SendNetMessage(ENetPeer* peer, int msgLen, const char* msg, bool reliable) {
-  ENetPacket* packet = enet_packet_create(
-      msg, msgLen > 0 ? (unsigned)msgLen : 1 + strlen(msg), reliable ? ENET_PACKET_FLAG_RELIABLE : 0);
+static void SendNetMessage(
+    ENetPeer* peer, int msgLen, const char* msg, bool reliable)
+{
+  ENetPacket* packet = enet_packet_create(msg,
+      msgLen > 0 ? (unsigned)msgLen : 1 + strlen(msg),
+      reliable ? ENET_PACKET_FLAG_RELIABLE : 0);
   // Send the packet to the peer over channel id 0.
   // One could also broadcast the packet by
   // enet_host_broadcast(host, 0, packet);
@@ -121,9 +124,11 @@ static char* CopyPacketMessage(ENetPacket* packet) {
 }
 */
 
-#define FRAME_OVERFLOW_THRESHOLD 0x20
-
+// Return true if the packet frame is greater than the previously saved frame,
+// or if it's less and the numbers are close enough to the ends of the range to
+// make it look like the frame count just wrapped around.
 static bool IsPacketFrameLater(unsigned packetFrame, unsigned savedFrame) {
+#define FRAME_OVERFLOW_THRESHOLD 0x20
   return packetFrame > savedFrame
     || (packetFrame < FRAME_OVERFLOW_THRESHOLD
         && savedFrame > 0x100 - FRAME_OVERFLOW_THRESHOLD);
