@@ -46,18 +46,22 @@ enum NetMessageType {
 __attribute__((packed))
 struct NetMessageMap {
   uint8_t type;  // NetMessageType
-  uint8_t frame; // frame number mod 2^8
+  uint8_t padding;
+  uint16_t frame; // frame number mod 2^8
   uint16_t timestamp; // time mod 2^16
   uint16_t messageId; // random 16-bit ID
-  uint8_t status;
-  uint8_t unused1; // XXX: use this byte if possible
+  uint16_t status;
   uint16_t mapRegionID;
   uint16_t mapSectorID;
-  uint8_t offsetX, offsetY;
-  uint8_t playerX, playerY;
+  uint16_t playerX;
+  uint16_t playerY;
   uint8_t tiles[NET_MESSAGE_MAP_DATA_SIZE];
-  uint8_t extra[207]; // XXX: use this for item/char/player info
+  uint8_t extra[205]; // XXX: use this for item/char/player info
 };
+
+// Number of header fields in the struct above.
+// We use this to flip the byte order when they're read from the network.
+#define NET_MESSAGE_MAP_HEADER_FIELD_COUNT 9
 
 typedef struct NetMessageMap NetMessageMap;
 
@@ -83,6 +87,7 @@ static void PrintMapMessage(NetMessageMap* msg) {
       printf(" %02X", msg->tiles[r * NET_MESSAGE_MAP_DIMENSION + c]);
     }
   }
+  printf("\n}\n");
 }
 
 void CloseNet() {
@@ -167,13 +172,14 @@ static bool IsPacketFrameLater(unsigned packetFrame, unsigned savedFrame) {
 static void ReceiveNetMessageMap(ENetPacket* pkt) {
   NetMessageMap* pktMap = (NetMessageMap*)&pkt->data;
   if (IsPacketFrameLater(pktMap->frame, _lastMapUpdate.msg.frame)) {
+    // Copy packet data into _lastMapUpdate.
     _lastMapUpdate.len = pkt->dataLength;
     _lastMapUpdate.msg = *pktMap;
     // Flip multibyte ints to host order.
-    _lastMapUpdate.msg.timestamp = ntohs(_lastMapUpdate.msg.timestamp);
-    _lastMapUpdate.msg.messageId = ntohs(_lastMapUpdate.msg.messageId);
-    _lastMapUpdate.msg.mapRegionID = ntohs(_lastMapUpdate.msg.mapRegionID);
-    _lastMapUpdate.msg.mapSectorID = ntohs(_lastMapUpdate.msg.mapSectorID);
+    uint16_t* header = (uint16_t*)&_lastMapUpdate.msg;
+    for (int i=1; i < 9; ++i) {
+      header[i] = ntohs(header[i]);
+    }
     PrintMapMessage(&_lastMapUpdate.msg);
     //RaiseEvent(EVT_NET_MESSAGE, pkt->dataLength, messageCopy);
     // TODO: Parse the 'extra' part of the event.
@@ -183,7 +189,7 @@ static void ReceiveNetMessageMap(ENetPacket* pkt) {
 static void ReceiveNetMessage(ENetPacket* pkt) {
   if (pkt->dataLength == 0)
     return;
-  uint8_t msgType = pkt->data[0];
+  uint16_t msgType = pkt->data[0];
   switch (msgType) {
     case NET_MSGTYPE_LOGIN_FAILED:
       // FIXME: Don't die, ask user to change login.
