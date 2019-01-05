@@ -21,6 +21,7 @@ HOSTNAME = "0.0.0.0".encode(ENC)
 SERVICE_TIMEOUT = 500
 CHANNEL = 0
 PEER_ID = BinToHex(os.urandom(4))
+MAP_RECT_DIM = 17
 
 MSG_TYPE_LOGIN_FAILED = 0x01
 MSG_TYPE_MAP_DATA = 0x02
@@ -36,9 +37,9 @@ class GameState:
         self.startTime = time.time()
     def frame(self):
         elapsed = time.time() - self.startTime
-        return round(elapsed * FPS)
+        return int(elapsed * FPS)
     def timestamp(self):
-        return round((time.time() - self.startTime) * 1000)
+        return int((time.time() - self.startTime) * 1000)
 
 gs = GameState()
 
@@ -78,7 +79,8 @@ def getMapRect(m, x, y, w, h):
     return mr
 
 def sendMessageToPeer(peer, message):
-    print("SENDING:", message)
+    print("SENDING:")
+    printHex(message)
     if isinstance(message, str):
         encMsg = message.encode(ENC)
     else:
@@ -130,25 +132,49 @@ def connectNewUser(peer, msg):
         sendMessageToPeer(peer, bytes([MSG_TYPE_LOGIN_FAILED]))
     else:
         px, py = user.position
-        header = [
-            MSG_TYPE_MAP_DATA,
-            gs.frame() % (1 << 16),
-            gs.timestamp() % (1 << 16),
-            random.randrange(0x10000),
-            user.status, 0, user.mapRegionID, user.mapSectorID,
-            px-7, py-7, px, py,
-        ]
+        messageId = random.randrange(0x10000)
         mapData = user.getMapData()
-        mapNumbers = [ x for y in mapData for x in y ]
-        print(mapNumbers)
-        mapBytes = bytes(mapNumbers)
+        mapNumbers = flatten(mapData)
+        #print(mapNumbers)
         extraData = []
-        headerFormat = "!BBHHBBHHBBBB"
-        print(headerFormat, header)
-        reply = struct.pack(headerFormat, *header)
-        reply += mapBytes
-        reply += bytes(extraData)
-        sendMessageToPeer(peer, reply)
+        offsetDim = round(MAP_RECT_DIM / 2)
+        headerFields = [
+          gs.frame() & 0xFFFF,
+          gs.timestamp() & 0xFFFF,
+          messageId,
+          user.status,
+          user.mapRegionID,
+          user.mapSectorID,
+          px,
+          py,
+        ]
+        msgType = [MSG_TYPE_MAP_DATA, 0]
+        header = [ struct.pack("!H", x) for x in headerFields ]
+        reply = [ msgType, header, mapNumbers, extraData ]
+        print(reply)
+        replyByteStrings = [
+                bytes(msgType), b''.join(header),
+                bytes(mapNumbers), bytes(extraData) ]
+        replyMessage = b''.join(replyByteStrings)
+        #printHex(replyMessage)
+        sendMessageToPeer(peer, replyMessage)
+
+def printHex(s):
+    hx = BinToHex(s)
+    for i in range(0, len(hx), 2):
+        print(hx[i] + hx[i+1] + ' ', end='')
+        if i % 32 == 30:
+            print()
+    if len(hx) % 32 != 0:
+        print()
+
+def flatten(lst):
+    return list(flattenIterator(lst))
+
+def flattenIterator(lst):
+    for x in lst:
+        for y in x:
+            yield y
 
 def auth(username, password):
     # TODO: Verify username and password for real.
@@ -167,7 +193,7 @@ class User:
 
     def getMapData(self):
         x, y = self.position
-        return getMapRect(theMap, x-7, y-7, 15, 15)
+        return getMapRect(theMap, x-7, y-7, MAP_RECT_DIM, MAP_RECT_DIM)
 
 def STR(x):
     if isinstance(x, Event):
