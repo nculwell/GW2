@@ -1,8 +1,22 @@
 // vim: nu et ts=8 sts=2 sw=2
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <assert.h>
+
+#ifdef __MSWIN__
+# include <netinet/in.h>
+#else
+# include <Winsock2.h>
+#endif
+
 #include <enet/enet.h>
 
-#define USERNAME "ncmadcity"
+#include "die.c"
+
+#define USERNAME "gooduser"
+#define SERVER_HOST "192.168.1.165"
+//#define SERVER_HOST "tiamat"
 
 #define NET_PORT 45812
 #define NET_CONNECTIONS_TO_SUPPORT 2
@@ -25,8 +39,8 @@ enum NetState {
 };
 
 enum NetMessageType {
-  NET_MSGTYPE_LOGIN_FAILED,
-  NET_MSGTYPE_MAP,
+  NET_MSGTYPE_LOGIN_FAILED = 0x01,
+  NET_MSGTYPE_MAP = 0x02,
 };
 
 __attribute__((packed))
@@ -75,7 +89,27 @@ void CloseNet() {
   enet_host_destroy(_enetClient);
 }
 
-void InitNet(Environment* env) {
+void PrintAddress(ENetAddress* address) {
+  printf("%d.%d.%d.%d:%d"
+      , (address->host >> 0x00) & 0xFF
+      , (address->host >> 0x08) & 0xFF
+      , (address->host >> 0x10) & 0xFF
+      , (address->host >> 0x18) & 0xFF
+      , address->port
+      );
+}
+
+void NetConnect() {
+  // Broadcast connect request across the network.
+  ENetAddress address = { .host = ENET_HOST_BROADCAST, .port = NET_PORT };
+  enet_address_set_host(&address, SERVER_HOST);
+  printf("Connecting to host: "); PrintAddress(&address); printf("\n");
+  _enetServer = enet_host_connect(_enetClient, &address,
+      NET_CHANNELS_TO_SUPPORT, 0);
+  _netState = NET_STATE_CONNECTING;
+}
+
+void InitNet() {
   assert(sizeof(NetMessageMap) == NET_MESSAGE_MAX_SIZE);
   if (0 != enet_initialize())
     die("Failed enet_initialize");
@@ -84,12 +118,8 @@ void InitNet(Environment* env) {
       NET_CONNECTIONS_TO_SUPPORT, NET_CHANNELS_TO_SUPPORT, 0, 0);
   if (!_enetClient)
     die("Failed to create ENet client");
-  // Broadcast connect request across the network.
-  ENetAddress address = { .host = ENET_HOST_BROADCAST, .port = NET_PORT };
-  _enetServer = enet_host_connect(_enetClient, &address,
-      NET_CHANNELS_TO_SUPPORT, 0);
-  _netState = NET_STATE_CONNECTING;
   atexit(CloseNet);
+  NetConnect();
 }
 
 static void SendNetMessage(
@@ -139,11 +169,14 @@ static void ReceiveNetMessageMap(ENetPacket* pkt) {
   if (IsPacketFrameLater(pktMap->frame, _lastMapUpdate.msg.frame)) {
     _lastMapUpdate.len = pkt->dataLength;
     _lastMapUpdate.msg = *pktMap;
-    //memcpy(&_lastMapUpdate.msg, pkt->data, pkt->dataLength);
+    // Flip multibyte ints to host order.
+    _lastMapUpdate.msg.timestamp = ntohs(_lastMapUpdate.msg.timestamp);
+    _lastMapUpdate.msg.messageId = ntohs(_lastMapUpdate.msg.messageId);
+    _lastMapUpdate.msg.mapRegionID = ntohs(_lastMapUpdate.msg.mapRegionID);
+    _lastMapUpdate.msg.mapSectorID = ntohs(_lastMapUpdate.msg.mapSectorID);
     PrintMapMessage(&_lastMapUpdate.msg);
-    //char* messageCopy = CopyPacketMessage(pkt);
     //RaiseEvent(EVT_NET_MESSAGE, pkt->dataLength, messageCopy);
-    // TODO: Parse event.
+    // TODO: Parse the 'extra' part of the event.
   }
 }
 
@@ -175,13 +208,12 @@ void PollNet() {
         printf("Connected to server: %X port %u.\n",
             event.peer->address.host, event.peer->address.port);
         if (_enetServer == event.peer)
-          printf("peer = _enetServer");
+          printf("peer = _enetServer\n");
         // TODO: See if 'reliable' really works for this.
         SendNetMessageFmt(event.peer, true, "CONNECT %s", USERNAME);
         _netState = NET_STATE_LOGGING_IN;
         // Store any relevant client information here.
         // event.peer->data = "Client information";
-        fflush(stdout);
         break;
       case ENET_EVENT_TYPE_RECEIVE:
         ReceiveNetMessage(event.packet);
@@ -191,6 +223,7 @@ void PollNet() {
         printf("Disconnected.\n");
         // Reset the peer's client information.
         // event.peer->data = NULL;
+        NetConnect();
         break;
       case ENET_EVENT_TYPE_NONE:
         // ignore
@@ -198,4 +231,16 @@ void PollNet() {
     }
   }
 }
+
+#ifdef NET_TEST
+int main(int argc, char** argv) {
+  InitNet();
+  printf("Testing network code...\n");
+  for (;;) {
+    PollNet();
+    fflush(stdout);
+  }
+  return 0;
+}
+#endif
 
