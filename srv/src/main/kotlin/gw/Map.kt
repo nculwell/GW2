@@ -27,11 +27,38 @@ data class MapRegion(val id: Int, val name: String) {
   val sectors = HashMap<Int, MapSector>()
 }
 
-class MapSector(id: Int, size: Size) {
-  val id = id
-  val tiles = intArrayOf(N_LAYERS * size.w * size.h)
+data class MapSector(val id: Int, val size: Size) {
+  val tiles = intArrayOf(size.w * size.h)
   val cover = Hashtable<Point, Cover>()
   // TODO: Encode connections between sectors somehow.
+  fun tileAt(x: Int, y: Int): Int {
+    if (x < 0) { throw Exception("x < 0") }
+    if (y < 0) { throw Exception("y < 0") }
+    if (y >= size.h) { throw Exception("y > height") }
+    if (y >= size.w) { throw Exception("x > width") }
+    val rowOffset = size.w * y
+    val colOffset = x
+    val offset = rowOffset + colOffset
+    val cell = tiles[offset]
+    return cell
+  }
+}
+
+data class MapSectorLayered(val id: Int, val size: Size, val nLayers: Int) {
+  val tiles = intArrayOf(nLayers * size.w * size.h)
+  val cover = Hashtable<Point, Cover>()
+  // TODO: Encode connections between sectors somehow.
+  fun tilesAt(x: Int, y: Int): List<Int> {
+    if (x < 0) { throw Exception("x < 0") }
+    if (y < 0) { throw Exception("y < 0") }
+    if (y >= size.h) { throw Exception("y > height") }
+    if (y >= size.w) { throw Exception("x > width") }
+    val rowOffset = nLayers * size.w * y
+    val colOffset = nLayers * x
+    val offset = rowOffset + colOffset
+    val cell = tiles.slice(offset..(offset+nLayers-1))
+    return cell
+  }
 }
 
 data class Image(val id: Int, val filename: String, val quad: Rect)
