@@ -27,34 +27,38 @@ data class MapRegion(val id: Int, val name: String) {
   val sectors = HashMap<Int, MapSector>()
 }
 
+fun checkBounds(p: Point, size: Size) {
+  if (p.x < 0) { throw Exception("x < 0") }
+  if (p.y < 0) { throw Exception("y < 0") }
+  if (p.y >= size.h) { throw Exception("y > height") }
+  if (p.y >= size.w) { throw Exception("x > width") }
+}
+
 data class MapSector(val id: Int, val size: Size) {
   val tiles = intArrayOf(size.w * size.h)
   val cover = Hashtable<Point, Cover>()
   // TODO: Encode connections between sectors somehow.
-  fun tileAt(x: Int, y: Int): Int {
-    if (x < 0) { throw Exception("x < 0") }
-    if (y < 0) { throw Exception("y < 0") }
-    if (y >= size.h) { throw Exception("y > height") }
-    if (y >= size.w) { throw Exception("x > width") }
-    val rowOffset = size.w * y
-    val colOffset = x
+  fun tileAt(p: Point): Int {
+    checkBounds(p, size)
+    val rowOffset = size.w * p.y
+    val colOffset = p.x
     val offset = rowOffset + colOffset
     val cell = tiles[offset]
     return cell
   }
 }
 
+// This should match the storage format for the map.
+// Flatten into a larger number of composite tiles to give
+// a single-layer map that's easier to work with.
 data class MapSectorLayered(val id: Int, val size: Size, val nLayers: Int) {
   val tiles = intArrayOf(nLayers * size.w * size.h)
   val cover = Hashtable<Point, Cover>()
   // TODO: Encode connections between sectors somehow.
-  fun tilesAt(x: Int, y: Int): List<Int> {
-    if (x < 0) { throw Exception("x < 0") }
-    if (y < 0) { throw Exception("y < 0") }
-    if (y >= size.h) { throw Exception("y > height") }
-    if (y >= size.w) { throw Exception("x > width") }
-    val rowOffset = nLayers * size.w * y
-    val colOffset = nLayers * x
+  fun tilesAt(p: Point): List<Int> {
+    checkBounds(p, size)
+    val rowOffset = nLayers * size.w * p.y
+    val colOffset = nLayers * p.x
     val offset = rowOffset + colOffset
     val cell = tiles.slice(offset..(offset+nLayers-1))
     return cell
