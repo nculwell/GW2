@@ -8,8 +8,8 @@ data class MapRegion(val id: Int, val name: String) {
   val sectors = HashMap<Int, MapSector>()
 }
 
-val emptyCover = List<Cover>()
-val emptyMovable = List<Movable>()
+val emptyCover: List<Cover> = emptyList()
+val emptyMovable: List<Movable> = emptyList()
 
 data class MapSector(val id: Int, val size: Size) {
   private val tiles = intArrayOf(size.w * size.h)
