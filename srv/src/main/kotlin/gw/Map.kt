@@ -2,8 +2,6 @@ package gw
 
 import java.util.Hashtable
 
-val N_LAYERS = 2
-
 data class MapRegion(val id: Int, val name: String) {
   val sectors = HashMap<Int, MapSector>()
 }
@@ -12,7 +10,7 @@ val emptyCover: List<Cover> = emptyList()
 val emptyMovable: List<Movable> = emptyList()
 
 data class MapSector(val id: Int, val size: Size) {
-  private val tiles = intArrayOf(size.w * size.h)
+  private val tiles = IntArray(size.w * size.h)
   private val cover = Hashtable<Point, List<Cover>>()
   private val movable = Hashtable<Point, List<Movable>>()
   // TODO: Encode connections between sectors somehow.
@@ -28,7 +26,25 @@ data class MapSector(val id: Int, val size: Size) {
     checkBounds(p, size)
     return cover.get(p) ?: emptyCover
   }
+  private fun movableAt(p: Point): List<Movable> {
+    checkBounds(p, size)
+    return movable.get(p) ?: emptyMovable
+  }
+  fun itemsAt(p: Point): List<Item> {
+    val ms = movableAt(p)
+    val items = ms.map({ i -> i as Item })
+    return items.filterNotNull()
+  }
+  fun getView(r: Rect): MapView {
+  }
 }
+
+data class MapView(
+    val tiles: IntArray,
+    val cover: Array<List<Cover>>,
+    val items: Array<List<Item>>,
+    val beings: Array<Being>
+)
 
 // This should match the storage format for the map.
 // Flatten into a larger number of composite tiles to give
@@ -57,10 +73,10 @@ interface Locatable {
   var loc: Point
 }
 
-interface Movable
-
 data class Location(override var loc: Point)
 : Locatable
+
+interface Movable
 
 data class Cover(val id: Int, val cls: CoverClass)
 : Locatable by Location(Point(-1, -1))
@@ -77,18 +93,38 @@ data class Item(val id: Int, val cls: ItemClass)
 data class ItemClass(val id: Int, val name: String, override val img: Image)
 : Visible
 
-data class Monster(val id: Int, val cls: MonsterClass)
-: Locatable by Location(Point(-1, -1))
-, Visible by cls
+interface Animate
+{
+  val id: Int
+  var hpMax: Int
+  var hp: Int
+}
+
+data class Being(override val id: Int, override var hpMax: Int)
+: Animate
+, Locatable by Location(Point(-1, -1))
 , Movable
+{
+  override var hp: Int = hpMax
+}
+
+data class BeingClass(val id: Int, val name: String, override val img: Image)
+: Visible
+
+data class Monster(val cls: MonsterClass, val being: Being)
+: Animate by being
+, Visible by cls
 
 data class MonsterClass(val id: Int, val name: String, override val img: Image)
 : Visible
 
-data class Player(val id: Int, val cls: PlayerClass)
-: Locatable by Location(Point(-1, -1))
+class Player(id: Int, cls: PlayerClass)
+: Animate by being
 , Visible by cls
-, Movable
+{
+  val being = Being(id, 0)
+  val cls = cls
+}
 
 data class PlayerClass(val id: Int, val name: String, override val img: Image)
 : Visible
